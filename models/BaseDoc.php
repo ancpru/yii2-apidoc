@@ -7,25 +7,29 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\DocBlock\Tag;
-use phpDocumentor\Reflection\DocBlock\Tag\DeprecatedTag;
-use phpDocumentor\Reflection\DocBlock\Tag\SinceTag;
 use yii\base\BaseObject;
 use yii\helpers\StringHelper;
+use phpDocumentor\Reflection\DocBlock\Tags\Since as SinceTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Deprecated as DeprecatedTag;
 
 /**
  * Base class for API documentation information.
  *
  * @author Carsten Brandt <mail@cebe.cc>
  * @since 2.0
+ * 
+ * @property-read string $name Name of the element
  */
 class BaseDoc extends BaseObject
 {
     /**
-     * @var \phpDocumentor\Reflection\DocBlock\Context
+     * @var \phpDocumentor\Reflection\Types\Context
      */
     public $phpDocContext;
-    public $name;
+    /**
+     * @var \phpDocumentor\Reflection\Fqsen
+     */
+    private $_fqsen;
     public $sourceFile;
     public $startLine;
     public $endLine;
@@ -38,7 +42,94 @@ class BaseDoc extends BaseObject
      * @var Tag[]
      */
     public $tags = [];
+    
+    /**
+     * Returns the FQSEN normalized
+     * 
+     * Contrary to the usual standard we use a FQSEN with the leading backspace
+     * in the namespace removed
+     * 
+     * @param \phpDocumentor\Reflection\Fqsen|string $name
+     */
+    public static function normalizeFQSEN($name)
+    {
+        return ltrim(($name instanceof \phpDocumentor\Reflection\Fqsen) ? (string)$name : $name, '\\');        
+    }
+    
+    /**
+     * Returns the name part in normalized way
+     * Additional characters like trailing () or leading $ are removed
+     * @param \phpDocumentor\Reflection\Fqsen $name
+     * @return type
+     */
+    public static function normalizeNamePart($name)
+    {
+        $e = explode('\\', (($name instanceof \phpDocumentor\Reflection\Fqsen) ? $name->getName() : $name));
+        $result = $e[count($e)-1];
+        $e = explode(':', $result);
+        $result = $e[count($e)-1];        
+        $result = rtrim($result, '() ');
+        $result = ltrim($result, '$ ');
+        return $result;
+    }
+    
+    /**
+     * Normalizes the name in the context of the Doc
+     * By default this method returns the normalized FQSEN.
+     * Doc-Elements in a local scope should override this method 
+     * returning the name part only by calling [[static::normalizeNamePart()]]
+     * @param \phpDocumentor\Reflection\Fqsen|string $name
+     */
+    public static function normalizeName($name)
+    {
+        return static::normalizeFQSEN($name);
+    }
+    
+    /**
+     * Sets the FQSEN 
+     * @param type $fqsen
+     */
+    public function setFqsen(\phpDocumentor\Reflection\Fqsen $fqsen)
+    {
+        $this->_fqsen = $fqsen;
+    }
 
+    /**
+     * Returns the FQSEN
+     * @return \phpDocumentor\Reflection\Fqsen
+     */
+    public function getFqsen(): \phpDocumentor\Reflection\Fqsen
+    {
+        return $this->_fqsen;
+    }
+    
+    /**
+     * Returns the normalized name of the element
+     * NOTE: You SHOULD NOT override this method to change the way the name
+     * of this element is normalized. Override [[static::normalizeName()]] instead.
+     * @return string Name of Element
+     */
+    public function getName() {
+        return static::normalizeName($this->_fqsen);
+    }
+    
+    /**
+     * Returns the normalized name part by calling [[static::normalizeNamePart()]]
+     * @return string
+     */
+    public function getNamePart()
+    {
+        return static::normalizeNamePart($this->_fqsen->getName());
+    }
+    
+    /**
+     * Returns the FQSEN string by calling [[static::normalizeFQSEN()]]
+     * @return string
+     */
+    public function getNormalizedFQSEN()
+    {
+        return static::normalizeFQSEN($this->fqsen);
+    }
 
     /**
      * Checks if doc has tag of a given name
@@ -86,11 +177,11 @@ class BaseDoc extends BaseObject
     }
 
     /**
-     * @param \phpDocumentor\Reflection\BaseReflector $reflector
+     * @param 
      * @param Context $context
      * @param array $config
      */
-    public function __construct($reflector = null, $context = null, $config = [])
+    public function __construct($reflector, $context = null, $config = [])
     {
         parent::__construct($config);
 
@@ -99,13 +190,22 @@ class BaseDoc extends BaseObject
         }
 
         // base properties
-        $this->name = ltrim($reflector->getName(), '\\');
-        $this->startLine = $reflector->getNode()->getAttribute('startLine');
-        $this->endLine = $reflector->getNode()->getAttribute('endLine');
+        $this->setFqsen($reflector->getFqsen());
+        
+        // reflector 4.0 seems not to deliver start and end line anymore, but a location
+        // Currently it's not part of the interface declaration, thus we just check if
+        // method getLocation() exists
+        if (method_exists($reflector, 'getLocation')) {
+            $this->startLine = $reflector->getLocation()->getLineNumber();
+            $this->endLine = $this->startLine + 1; // Reflector seems not to provide a end line anymore - assume 1 line for now
+        } else {
+            $this->startLine = null;
+            $this->endLine = null;
+        }
 
         $docblock = $reflector->getDocBlock();
-        if ($docblock !== null) {
-            $this->shortDescription = static::mbUcFirst($docblock->getShortDescription());
+        if ($docblock instanceof \phpDocumentor\Reflection\DocBlock) {
+            $this->shortDescription = static::mbUcFirst($docblock->getSummary()); // Previously $docblock->getShortDescription()
             if (empty($this->shortDescription) && !($this instanceof PropertyDoc) && $context !== null && $docblock->getTagsByName('inheritdoc') === null) {
                 $context->warnings[] = [
                     'line' => $this->startLine,
@@ -113,7 +213,7 @@ class BaseDoc extends BaseObject
                     'message' => "No short description for " . substr(StringHelper::basename(get_class($this)), 0, -3) . " '{$this->name}'",
                 ];
             }
-            $this->description = $docblock->getLongDescription()->getContents();
+            $this->description = $docblock->getDescription()->render(null); // Previously getLongDescription()->getContents();
 
             $this->phpDocContext = $docblock->getContext();
 
@@ -132,7 +232,7 @@ class BaseDoc extends BaseObject
             if ($this->shortDescription === '{@inheritdoc}') {
                 // Mock up parsing of '{@inheritdoc}' (in brackets) tag, which is not yet supported at "phpdocumentor/reflection-docblock" 2.x
                 // todo consider removal in case of "phpdocumentor/reflection-docblock" upgrade
-                $this->tags[] = new Tag('inheritdoc', '');
+                /* @todo take care of inheritance */
                 $this->shortDescription = '';
             }
 

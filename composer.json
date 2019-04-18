@@ -18,13 +18,14 @@
         }
     ],
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "php": ">=5.4",
         "yiisoft/yii2": "~2.0.13",
         "yiisoft/yii2-bootstrap": "~2.0.0",
-        "phpdocumentor/reflection": "^3.0.1",
-        "phpdocumentor/reflection-docblock": "^2.0.4",
-        "nikic/php-parser": "^1.0",
+        "phpdocumentor/reflection": "^4.0.0",
+        "phpdocumentor/reflection-docblock": "*",
+        "nikic/php-parser": "*",
         "cebe/js-search": "~0.9.3",
         "cebe/markdown": "~1.0.0 | ~1.1.0 | ~1.2.0",
         "cebe/markdown-latex": "~1.0",
@@ -41,6 +42,9 @@
     ],
     "autoload": {
         "psr-4": { "yii\\apidoc\\": "" }
+    },
+    "autoload-dev": {
+        "psr-4": { "yiiunit\\apidoc\\": "tests\\" }
     },
     "bin": ["apidoc"],
     "extra": {

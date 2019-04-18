@@ -51,13 +51,12 @@ class Context extends Component
      */
     public function getType($type)
     {
-        $type = ltrim($type, '\\');
-        if (isset($this->classes[$type])) {
-            return $this->classes[$type];
-        } elseif (isset($this->interfaces[$type])) {
-            return $this->interfaces[$type];
-        } elseif (isset($this->traits[$type])) {
-            return $this->traits[$type];
+        if (isset($this->classes[ClassDoc::normalizeName($type)])) {
+            return $this->classes[ClassDoc::normalizeName($type)];
+        } elseif (isset($this->interfaces[InterfaceDoc::normalizeName($type)])) {
+            return $this->interfaces[InterfaceDoc::normalizeName($type)];
+        } elseif (isset($this->traits[TraitDoc::normalizeName($type)])) {
+            return $this->traits[TraitDoc::normalizeName($type)];
         }
 
         return null;
@@ -71,20 +70,28 @@ class Context extends Component
     {
         $this->files[$fileName] = sha1_file($fileName);
 
-        $reflection = new FileReflector($fileName, true);
-        $reflection->process();
+        // phpdocumentor reflection has been redesigned with v 4.0 and offers
+        // multi-file (project) reflection now. Basically it does, what this class
+        // does. It probably makes sense to use this feature in the future.
+        // In order to avoid big changes for now we work with "one-file-projects"
+        $oneFileProjectFactory = \phpDocumentor\Reflection\Php\ProjectFactory::createInstance();
+        $oneFileProject = $oneFileProjectFactory->create('oneFileProject', [new \phpDocumentor\Reflection\File\LocalFile($fileName)]);
+        
+        foreach ($oneFileProject->getFiles() as $reflection) {
+            /* @var $reflection \phpDocumentor\Reflection\Php\File */
 
-        foreach ($reflection->getClasses() as $class) {
-            $class = new ClassDoc($class, $this, ['sourceFile' => $fileName]);
-            $this->classes[$class->name] = $class;
-        }
-        foreach ($reflection->getInterfaces() as $interface) {
-            $interface = new InterfaceDoc($interface, $this, ['sourceFile' => $fileName]);
-            $this->interfaces[$interface->name] = $interface;
-        }
-        foreach ($reflection->getTraits() as $trait) {
-            $trait = new TraitDoc($trait, $this, ['sourceFile' => $fileName]);
-            $this->traits[$trait->name] = $trait;
+            foreach ($reflection->getClasses() as $class) {
+                $class = new ClassDoc($class, $this, ['sourceFile' => $fileName]);
+                $this->classes[$class->name] = $class;
+            }
+            foreach ($reflection->getInterfaces() as $interface) {
+                $interface = new InterfaceDoc($interface, $this, ['sourceFile' => $fileName]);
+                $this->interfaces[$interface->name] = $interface;
+            }
+            foreach ($reflection->getTraits() as $trait) {
+                $trait = new TraitDoc($trait, $this, ['sourceFile' => $fileName]);
+                $this->traits[$trait->name] = $trait;
+            }
         }
     }
 
@@ -256,7 +263,7 @@ class Context extends Component
                 // descriptions will be concatenated.
                 $m->description = trim($m->description) . "\n\n"
                     . trim($inheritedMethod->description) . "\n\n"
-                    . $inheritTag->getContent();
+                    . (string)$inheritTag;
 
                 foreach ($m->params as $i => $param) {
                     if (!isset($inheritedMethod->params[$i])) {
