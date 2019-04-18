@@ -31,7 +31,16 @@ class PropertyDoc extends BaseDoc
     public $setter;
     // will be set by creating class
     public $definedBy;
-
+    
+    /**
+     * Returns the normalized name of a property
+     * The name of a property is normalized to name only
+     * @param string|\phpDocumentor\Reflection\Fqsen $name
+     */
+    public static function normalizeName($name)
+    {
+        return parent::normalizeNamePart($name);
+    }
 
     /**
      * @return bool if property is read only
@@ -50,11 +59,11 @@ class PropertyDoc extends BaseDoc
     }
 
     /**
-     * @param \phpDocumentor\Reflection\ClassReflector\PropertyReflector $reflector
+     * @param \phpDocumentor\Reflection\Php\Property $reflector
      * @param Context $context
      * @param array $config
      */
-    public function __construct($reflector = null, $context = null, $config = [])
+    public function __construct(\phpDocumentor\Reflection\Php\Property $reflector = null, $context = null, $config = [])
     {
         parent::__construct($reflector, $context, $config);
 
@@ -66,8 +75,8 @@ class PropertyDoc extends BaseDoc
         $this->isStatic = $reflector->isStatic();
 
         // bypass $reflector->getDefault() for short array syntax
-        if ($reflector->getNode()->default) {
-            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getNode()->default);
+        if ($reflector->getDefault()) {
+            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
         }
 
         $hasInheritdoc = false;

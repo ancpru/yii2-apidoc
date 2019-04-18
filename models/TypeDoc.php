@@ -7,7 +7,7 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\DocBlock\Tag\AuthorTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Author as AuthorTag;
 use yii\helpers\StringHelper;
 
 /**
@@ -189,7 +189,7 @@ class TypeDoc extends BaseDoc
 
         foreach ($this->tags as $i => $tag) {
             if ($tag instanceof AuthorTag) {
-                $this->authors[$tag->getAuthorName()] = $tag->getAuthorEmail();
+                $this->authors[$tag->getAuthorName()] = $tag->getEmail();
                 unset($this->tags[$i]);
             }
         }

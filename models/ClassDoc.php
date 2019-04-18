@@ -50,7 +50,15 @@ class ClassDoc extends TypeDoc
      * @var ConstDoc[]
      */
     public $constants = [];
-
+    
+    /**
+     * Returns the name of the class (as FQN)
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->getNormalizedFQSEN();
+    }
 
     /**
      * @inheritdoc
@@ -93,7 +101,7 @@ class ClassDoc extends TypeDoc
     /**
      * @inheritdoc
      */
-    public function __construct($reflector = null, $context = null, $config = [])
+    public function __construct(\phpDocumentor\Reflection\Php\Class_ $reflector = null, $context = null, $config = [])
     {
         parent::__construct($reflector, $context, $config);
 
@@ -101,7 +109,7 @@ class ClassDoc extends TypeDoc
             return;
         }
 
-        $this->parentClass = ltrim($reflector->getParentClass(), '\\');
+        $this->parentClass = ClassDoc::normalizeName($reflector->getParent());
         if (empty($this->parentClass)) {
             $this->parentClass = null;
         }
@@ -109,10 +117,10 @@ class ClassDoc extends TypeDoc
         $this->isFinal = $reflector->isFinal();
 
         foreach ($reflector->getInterfaces() as $interface) {
-            $this->interfaces[] = ltrim($interface, '\\');
+            $this->interfaces[] = InterfaceDoc::normalizeName($interface);
         }
-        foreach ($reflector->getTraits() as $trait) {
-            $this->traits[] = ltrim($trait, '\\');
+        foreach ($reflector->getUsedTraits() as $trait) {
+            $this->traits[] = TraitDoc::normalizeName($trait);
         }
         foreach ($reflector->getConstants() as $constantReflector) {
             $docblock = $constantReflector->getDocBlock();

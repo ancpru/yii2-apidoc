@@ -19,6 +19,19 @@ use yii\apidoc\models\TypeDoc;
 trait ApiMarkdownTrait
 {
     /**
+     * Resolves a not fully qualified name in the context of the element
+     * @param string $name
+     * @param type $context
+     * @return string
+     */
+    protected function resolveFqsen($name, $context)
+    {
+        $fqsenResolver = new \phpDocumentor\Reflection\FqsenResolver();
+        $name = $fqsenResolver->resolve($name, (isset($context)) ? $context->phpDocContext : null);
+        return (string) $name;
+    }
+    
+    /**
      * @marker [[
      */
     protected function parseApiLinks($text)
@@ -37,7 +50,10 @@ trait ApiMarkdownTrait
                 $subjectName = substr($object, $pos + 2);
                 if ($context !== null) {
                     // Collection resolves relative types
+                    /*
                     $typeName = (new Collection([$typeName], $context->phpDocContext))->__toString();
+                    */
+                    $typeName = $this->resolveFqsen($typeName, $context);
                 }
                 /** @var $type TypeDoc */
                 $type = static::$renderer->apiContext->getType($typeName);
@@ -84,8 +100,8 @@ trait ApiMarkdownTrait
             }
 
             if ($context !== null) {
-                // Collection resolves relative types
-                $object = (new Collection([$object], $context->phpDocContext))->__toString();
+                $object = $this->resolveFqsen($object, $context);
+/*                $object = (new Collection([$object], $context->phpDocContext))->__toString(); */
             }
             if (($type = static::$renderer->apiContext->getType($object)) !== null) {
                 return [

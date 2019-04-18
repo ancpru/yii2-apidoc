@@ -24,6 +24,16 @@ class MethodDoc extends FunctionDoc
 
 
     /**
+     * Returns the normalized name of a method
+     * The name of a method is normalized to name only
+     * @param string|\phpDocumentor\Reflection\Fqsen $name
+     */
+    public static function normalizeName($name)
+    {
+        return parent::normalizeNamePart($name);
+    }
+    
+    /**
      * @param \phpDocumentor\Reflection\ClassReflector\MethodReflector $reflector
      * @param Context $context
      * @param array $config

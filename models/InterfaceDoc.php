@@ -34,7 +34,7 @@ class InterfaceDoc extends TypeDoc
         }
 
         foreach ($reflector->getParentInterfaces() as $interface) {
-            $this->parentInterfaces[] = ltrim($interface, '\\');
+            $this->parentInterfaces[] = InterfaceDoc::normalizeName($name);
         }
 
         foreach ($this->methods as $method) {

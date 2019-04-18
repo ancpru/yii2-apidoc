@@ -22,6 +22,7 @@ use yii\apidoc\models\TraitDoc;
 use yii\apidoc\models\TypeDoc;
 use yii\base\Component;
 use yii\console\Controller;
+use phpDocumentor\Reflection\Types\Compound as CompoundType;
 
 /**
  * Base class for all documentation renderers
@@ -69,6 +70,9 @@ abstract class BaseRenderer extends Component
      */
     public function createTypeLink($types, $context = null, $title = null, $options = [])
     {
+        if ($types instanceof CompoundType) {
+            $types = iterator_to_array($types);
+        }
         if (!is_array($types)) {
             $types = [$types];
         }
@@ -77,6 +81,15 @@ abstract class BaseRenderer extends Component
         }
         $links = [];
         foreach ($types as $type) {
+            // If we got a full phpdocumentor type information we convert it
+            // to a string as we can also handle string based types and
+            // want to avoid a duplicate implementation with possibly inconsistant
+            // results. Consider to turn this around in the future (if no Type object
+            // is passed turn it into a type object with phpdocumentors utilities)
+            if ($type instanceof \phpDocumentor\Reflection\Type) {
+                $type = (string)$type;
+            }
+            // Process type 
             $postfix = '';
             if (is_string($type)) {
                 if (!empty($type) && substr_compare($type, '[]', -2, 2) === 0) {

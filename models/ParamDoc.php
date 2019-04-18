@@ -31,11 +31,11 @@ class ParamDoc extends BaseObject
 
 
     /**
-     * @param \phpDocumentor\Reflection\FunctionReflector\ArgumentReflector $reflector
+     * @param $reflector
      * @param Context $context
      * @param array $config
      */
-    public function __construct($reflector = null, $context = null, $config = [])
+    public function __construct(\phpDocumentor\Reflection\Php\Argument $reflector = null, $context = null, $config = [])
     {
         parent::__construct($config);
 
@@ -48,9 +48,9 @@ class ParamDoc extends BaseObject
         $this->isOptional = $reflector->getDefault() !== null;
 
         // bypass $reflector->getDefault() for short array syntax
-        if ($reflector->getNode()->default) {
-            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getNode()->default);
+        if ($reflector->getDefault()) {
+            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
         }
-        $this->isPassedByReference = $reflector->isByRef();
+        $this->isPassedByReference = $reflector->isByReference();
     }
 }

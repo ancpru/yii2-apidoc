@@ -7,10 +7,11 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\DocBlock\Tag\ParamTag;
-use phpDocumentor\Reflection\DocBlock\Tag\PropertyTag;
-use phpDocumentor\Reflection\DocBlock\Tag\ReturnTag;
-use phpDocumentor\Reflection\DocBlock\Tag\ThrowsTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Param as ParamTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Property as PropertyTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Return_ as ReturnTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Throws as ThrowsTag;
+use phpDocumentor\Reflection\Types\Compound as CompoundType;
 
 /**
  * Represents API documentation information for a `function`.
@@ -44,7 +45,11 @@ class FunctionDoc extends BaseDoc
             return;
         }
 
-        $this->isReturnByReference = $reflector->isByRef();
+        /* @todo find out if there is a new way to check on ref (nothing found) 
+         Previous was:
+        $this->isReturnByReference = $reflector->getReturnType()-> isByRef();
+        */
+        $this->isReturnByReference = false;
 
         foreach ($reflector->getArguments() as $arg) {
             $arg = new ParamDoc($arg, $context, ['sourceFile' => $this->sourceFile]);
@@ -69,11 +74,11 @@ class FunctionDoc extends BaseDoc
                 }
                 $this->params[$paramName]->description = static::mbUcFirst($tag->getDescription());
                 $this->params[$paramName]->type = $tag->getType();
-                $this->params[$paramName]->types = $tag->getTypes();
+                $this->params[$paramName]->types = $tag->getType(); // Compound implements array
                 unset($this->tags[$i]);
             } elseif ($tag instanceof ReturnTag) {
                 $this->returnType = $tag->getType();
-                $this->returnTypes = $tag->getTypes();
+                $this->returnTypes = $tag->getType(); // Compound implements array
                 $this->return = static::mbUcFirst($tag->getDescription());
                 unset($this->tags[$i]);
             }
