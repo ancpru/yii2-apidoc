@@ -8,6 +8,10 @@
 namespace yii\apidoc\models;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Author as AuthorTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Property as PropertyTag;
+use phpDocumentor\Reflection\DocBlock\Tags\PropertyRead as PropertyReadTag;
+use phpDocumentor\Reflection\DocBlock\Tags\PropertyWrite as PropertyWriteTag;
+use phpDocumentor\Reflection\Php\Class_ as ClassReflection;
 use yii\helpers\StringHelper;
 
 /**
@@ -25,6 +29,8 @@ use yii\helpers\StringHelper;
  */
 class TypeDoc extends BaseDoc
 {
+    use GlobalDocElementTrait;
+    
     public $authors = [];
     /**
      * @var MethodDoc[]
@@ -35,7 +41,16 @@ class TypeDoc extends BaseDoc
      */
     public $properties = [];
     public $namespace;
-
+    
+    /**
+     * Creates a Standard-FQSEN string relative to this type
+     * @param string $elementName Element name (prefixed with $ for properties, postfixed  with () for methods)
+     * @return string 
+     */
+    public function buildFqsen(string $elementName)
+    {
+        return (string)$this->getFqsen().'::'.$elementName;
+    }
 
     /**
      * Finds subject (method or property) by name
@@ -173,7 +188,7 @@ class TypeDoc extends BaseDoc
     }
 
     /**
-     * @param \phpDocumentor\Reflection\InterfaceReflector $reflector
+     * @param ClassReflection $reflector
      * @param Context $context
      * @param array $config
      */
@@ -193,12 +208,37 @@ class TypeDoc extends BaseDoc
                 unset($this->tags[$i]);
             }
         }
-
-        foreach ($reflector->getProperties() as $propertyReflector) {
-            if ($propertyReflector->getVisibility() != 'private') {
-                $property = new PropertyDoc($propertyReflector, $context, ['sourceFile' => $this->sourceFile]);
-                $property->definedBy = $this->name;
-                $this->properties[$property->name] = $property;
+        
+        // Properties by tags
+        foreach ($this->tags as $i => $tag) {
+            if ($tag instanceof PropertyTag || $tag instanceof PropertyReadTag || $tag instanceof PropertyWriteTag) {
+                $description = $tag->getDescription();
+                $shortDescription = static::extractFirstSentence($tag->getDescription());
+                $description = substr($description, strlen($shortDescription));
+                $property = new PropertyDoc(null, $context, [
+                    'fqsen' => new \phpDocumentor\Reflection\Fqsen($this->getFqsen().'::'.$tag->getVariableName()),
+                    'type' => $tag->getType(),
+                    'types' => $tag->getType(),
+                    'shortDescription' => $shortDescription,
+                    'description' => $description,
+                    'getter' => (!$tag instanceof PropertyWriteTag) ? '__get' : null,
+                    'setter' => (!$tag instanceof PropertyReadTag) ? '__set' : null
+                ]);
+                $this->properties[$property->getKey()] = $property;
+                unset($this->tags[$i]);
+            }
+        }
+        
+        // Properties by reflection
+        // Note: Interface reflection does not implement getProperties(), thus we 
+        // check if it exists.
+        if (method_exists($reflector, 'getProperties')) {
+            foreach ($reflector->getProperties() as $propertyReflector) {
+                if ($propertyReflector->getVisibility() != 'private') {
+                    $property = new PropertyDoc($propertyReflector, $context, ['sourceFile' => $this->sourceFile]);
+                    $property->definedBy = $this->name;
+                    $this->properties[$property->getKey()] = $property;
+                }
             }
         }
 
@@ -206,7 +246,7 @@ class TypeDoc extends BaseDoc
             if ($methodReflector->getVisibility() != 'private') {
                 $method = new MethodDoc($methodReflector, $context, ['sourceFile' => $this->sourceFile]);
                 $method->definedBy = $this->name;
-                $this->methods[$method->name] = $method;
+                $this->methods[$method->getKey()] = $method;
             }
         }
     }

@@ -7,7 +7,8 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\DocBlock\Tag\ReturnTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Return_ as ReturnTag;
+use phpDocumentor\Reflection\Php\Constant as ConstantReflector;
 
 /**
  * Represents API documentation information for an `event`.
@@ -36,10 +37,9 @@ class EventDoc extends ConstDoc
 
         foreach ($this->tags as $i => $tag) {
             if ($tag->getName() == 'event') {
-                $eventTag = new ReturnTag('event', $tag->getContent(), $tag->getDocBlock(), $tag->getLocation());
-                $this->type = $eventTag->getType();
-                $this->types = $eventTag->getTypes();
-                $this->description = static::mbUcFirst($eventTag->getDescription());
+                $this->type = $tag->getType();
+                $this->types = $tag->getType();
+                $this->description = static::mbUcFirst($tag->getDescription());
                 $this->shortDescription = BaseDoc::extractFirstSentence($this->description);
                 unset($this->tags[$i]);
             }

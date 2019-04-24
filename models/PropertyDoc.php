@@ -7,7 +7,7 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\DocBlock\Tag\VarTag;
+use phpDocumentor\Reflection\DocBlock\Tags\Var_ as VarTag;
 use yii\apidoc\helpers\PrettyPrinter;
 
 /**
@@ -19,8 +19,12 @@ use yii\apidoc\helpers\PrettyPrinter;
  * @author Carsten Brandt <mail@cebe.cc>
  * @since 2.0
  */
-class PropertyDoc extends BaseDoc
+class PropertyDoc extends BaseDoc implements DocInterface
 {
+    use LocalDocElementTrait {
+        LocalDocElementTrait::normalizeName as defaultNormalizeName;
+    }
+    
     public $visibility;
     public $isStatic;
     public $type;
@@ -31,17 +35,23 @@ class PropertyDoc extends BaseDoc
     public $setter;
     // will be set by creating class
     public $definedBy;
+
     
     /**
-     * Returns the normalized name of a property
-     * The name of a property is normalized to name only
-     * @param string|\phpDocumentor\Reflection\Fqsen $name
+     * Normalizes the display name
+     * Properties are prefixed with "$"
+     * @param mixed $name
+     * @return string
      */
-    public static function normalizeName($name)
+    public static function normalizeName($name) 
     {
-        return parent::normalizeNamePart($name);
+        $result = static::defaultNormalizeName($name);
+        if ($result[0] !== '$') {
+            $result = '$' . $result;
+        }
+        return $result;
     }
-
+    
     /**
      * @return bool if property is read only
      */
@@ -63,7 +73,7 @@ class PropertyDoc extends BaseDoc
      * @param Context $context
      * @param array $config
      */
-    public function __construct(\phpDocumentor\Reflection\Php\Property $reflector = null, $context = null, $config = [])
+    public function __construct(?\phpDocumentor\Reflection\Php\Property $reflector = null, $context = null, $config = [])
     {
         parent::__construct($reflector, $context, $config);
 
@@ -76,7 +86,14 @@ class PropertyDoc extends BaseDoc
 
         // bypass $reflector->getDefault() for short array syntax
         if ($reflector->getDefault()) {
-            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
+            /* @todo reflector seems not to provide parsing nodes - find a way to workaround this problem in order
+             * to use pretty printer again
+             */
+            if (is_string($reflector->getDefault())) {
+                $this->defaultValue = $reflector->getDefault(); // We do not have parser nodes. Does this work??? 
+            } else {
+                $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
+            }
         }
 
         $hasInheritdoc = false;
@@ -86,7 +103,7 @@ class PropertyDoc extends BaseDoc
             }
             if ($tag instanceof VarTag) {
                 $this->type = $tag->getType();
-                $this->types = $tag->getTypes();
+                $this->types = $tag->getType();
                 $this->description = static::mbUcFirst($tag->getDescription());
                 $this->shortDescription = BaseDoc::extractFirstSentence($this->description);
             }

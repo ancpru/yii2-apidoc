@@ -7,7 +7,6 @@
 
 namespace yii\apidoc\models;
 
-use phpDocumentor\Reflection\FileReflector;
 use yii\base\Component;
 
 /**
@@ -45,18 +44,25 @@ class Context extends Component
 
 
     /**
+     * @inheritdoc
+     */
+    public function init()
+    {
+        parent::init();
+    }    
+    /**
      * Returning TypeDoc for a type given
      * @param string $type
      * @return null|ClassDoc|InterfaceDoc|TraitDoc
      */
     public function getType($type)
     {
-        if (isset($this->classes[ClassDoc::normalizeName($type)])) {
-            return $this->classes[ClassDoc::normalizeName($type)];
-        } elseif (isset($this->interfaces[InterfaceDoc::normalizeName($type)])) {
-            return $this->interfaces[InterfaceDoc::normalizeName($type)];
-        } elseif (isset($this->traits[TraitDoc::normalizeName($type)])) {
-            return $this->traits[TraitDoc::normalizeName($type)];
+        if (isset($this->classes[ClassDoc::normalizeKey($type)])) {
+            return $this->classes[ClassDoc::normalizeKey($type)];
+        } elseif (isset($this->interfaces[InterfaceDoc::normalizeKey($type)])) {
+            return $this->interfaces[InterfaceDoc::normalizeKey($type)];
+        } elseif (isset($this->traits[TraitDoc::normalizeKey($type)])) {
+            return $this->traits[TraitDoc::normalizeKey($type)];
         }
 
         return null;
@@ -74,7 +80,7 @@ class Context extends Component
         // multi-file (project) reflection now. Basically it does, what this class
         // does. It probably makes sense to use this feature in the future.
         // In order to avoid big changes for now we work with "one-file-projects"
-        $oneFileProjectFactory = \phpDocumentor\Reflection\Php\ProjectFactory::createInstance();
+        $oneFileProjectFactory = \yii\apidoc\helpers\phpdoc\ProjectFactory::createInstance();
         $oneFileProject = $oneFileProjectFactory->create('oneFileProject', [new \phpDocumentor\Reflection\File\LocalFile($fileName)]);
         
         foreach ($oneFileProject->getFiles() as $reflection) {
@@ -383,8 +389,8 @@ class Context extends Component
             }
             if (!strncmp($name, 'get', 3) && strlen($name) > 3 && $this->hasNonOptionalParams($method)) {
                 $propertyName = '$' . lcfirst(substr($method->name, 3));
-                if (isset($class->properties[$propertyName])) {
-                    $property = $class->properties[$propertyName];
+                if (isset($class->properties[PropertyDoc::normalizeKey($propertyName)])) {
+                    $property = $class->properties[PropertyDoc::normalizeKey($propertyName)];
                     if ($property->getter === null && $property->setter === null) {
                         $this->errors[] = [
                             'line' => $property->startLine,
@@ -394,8 +400,8 @@ class Context extends Component
                     }
                     $property->getter = $method;
                 } else {
-                    $class->properties[$propertyName] = new PropertyDoc(null, $this, [
-                        'name' => $propertyName,
+                    $class->properties[PropertyDoc::normalizeKey($propertyName)] = new PropertyDoc(null, $this, [
+                        'fqsen' =>  new \phpDocumentor\Reflection\Fqsen($class->buildFqsen($propertyName)),
                         'definedBy' => $method->definedBy,
                         'sourceFile' => $class->sourceFile,
                         'visibility' => 'public',
@@ -411,8 +417,8 @@ class Context extends Component
             }
             if (!strncmp($name, 'set', 3) && strlen($name) > 3 && $this->hasNonOptionalParams($method, 1)) {
                 $propertyName = '$' . lcfirst(substr($method->name, 3));
-                if (isset($class->properties[$propertyName])) {
-                    $property = $class->properties[$propertyName];
+                if (isset($class->properties[PropertyDoc::normalizeKey($propertyName)])) {
+                    $property = $class->properties[PropertyDoc::normalizeKey($propertyName)];
                     if ($property->getter === null && $property->setter === null) {
                         $this->errors[] = [
                             'line' => $property->startLine,
@@ -423,8 +429,8 @@ class Context extends Component
                     $property->setter = $method;
                 } else {
                     $param = $this->getFirstNotOptionalParameter($method);
-                    $class->properties[$propertyName] = new PropertyDoc(null, $this, [
-                        'name' => $propertyName,
+                    $class->properties[PropertyDoc::normalizeKey($propertyName)] = new PropertyDoc(null, $this, [
+                        'fqsen' => new \phpDocumentor\Reflection\Fqsen($class->buildFqsen($propertyName)),
                         'definedBy' => $method->definedBy,
                         'sourceFile' => $class->sourceFile,
                         'visibility' => 'public',
@@ -484,10 +490,16 @@ class Context extends Component
         if ($classA->name == $classB) {
             return true;
         }
-        while ($classA->parentClass !== null && isset($this->classes[$classA->parentClass])) {
-            $classA = $this->classes[$classA->parentClass];
-            if ($classA->name == $classB) {
-                return true;
+        while ($classA->parentClass !== null) {
+            if ($classA->parentClass == $classB) {
+                return true; // Parent is requested class - no need to continue ===> RETURN true
+            } elseif (isset($this->classes[$classA->parentClass])) {
+                $classA = $this->classes[$classA->parentClass];
+                if ($classA->name == $classB) {
+                    return true;
+                }
+            } else {
+                return false; // Parent is not requested class but no further classdoc available ===> RETURN false
             }
         }
         return false;

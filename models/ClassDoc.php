@@ -17,6 +17,7 @@ namespace yii\apidoc\models;
  */
 class ClassDoc extends TypeDoc
 {
+    
     /**
      * @var string
      */
@@ -51,14 +52,6 @@ class ClassDoc extends TypeDoc
      */
     public $constants = [];
     
-    /**
-     * Returns the name of the class (as FQN)
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->getNormalizedFQSEN();
-    }
 
     /**
      * @inheritdoc

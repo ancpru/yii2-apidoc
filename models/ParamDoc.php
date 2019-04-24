@@ -16,11 +16,12 @@ use yii\base\BaseObject;
  * @author Carsten Brandt <mail@cebe.cc>
  * @since 2.0
  */
-class ParamDoc extends BaseObject
+class ParamDoc extends BaseObject implements DocInterface
 {
-    public $name;
+    private $_name;
     public $typeHint;
     public $isOptional;
+    public $isVariadic; 
     public $defaultValue;
     public $isPassedByReference;
     // will be set by creating class
@@ -43,14 +44,43 @@ class ParamDoc extends BaseObject
             return;
         }
 
-        $this->name = $reflector->getName();
+        $this->_name = $reflector->getName();
         $this->typeHint = $reflector->getType();
         $this->isOptional = $reflector->getDefault() !== null;
+        $this->isVariadic = $reflector->isVariadic();
 
         // bypass $reflector->getDefault() for short array syntax
         if ($reflector->getDefault()) {
-            $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
+            /* @todo reflector seems not to provide parsing nodes - find a way to workaround this problem in order
+             * to use pretty printer again
+             */
+            if (is_string($reflector->getDefault())) {
+                $this->defaultValue = $reflector->getDefault();
+            } else {
+                $this->defaultValue = PrettyPrinter::getRepresentationOfValue($reflector->getDefault());
+            }
         }
         $this->isPassedByReference = $reflector->isByReference();
     }
+
+    public function getKey(): string
+    {
+        return static::normalizeKey($this->_name);
+    }
+
+    public static function normalizeKey($name)
+    {
+        return $name;
+    }
+
+    public static function normalizeName($name)
+    {
+        return '$'.$name;
+    }
+
+    public function getName(): string
+    {
+        return static::normalizeName($this->_name);
+    }
+
 }

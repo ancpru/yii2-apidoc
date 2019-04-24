@@ -15,6 +15,8 @@ namespace yii\apidoc\models;
  */
 class MethodDoc extends FunctionDoc
 {
+    use LocalDocElementTrait;
+    
     public $isAbstract;
     public $isFinal;
     public $isStatic;
@@ -22,17 +24,6 @@ class MethodDoc extends FunctionDoc
     // will be set by creating class
     public $definedBy;
 
-
-    /**
-     * Returns the normalized name of a method
-     * The name of a method is normalized to name only
-     * @param string|\phpDocumentor\Reflection\Fqsen $name
-     */
-    public static function normalizeName($name)
-    {
-        return parent::normalizeNamePart($name);
-    }
-    
     /**
      * @param \phpDocumentor\Reflection\ClassReflector\MethodReflector $reflector
      * @param Context $context

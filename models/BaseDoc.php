@@ -20,7 +20,7 @@ use phpDocumentor\Reflection\DocBlock\Tags\Deprecated as DeprecatedTag;
  * 
  * @property-read string $name Name of the element
  */
-class BaseDoc extends BaseObject
+class BaseDoc extends BaseObject implements DocInterface
 {
     /**
      * @var \phpDocumentor\Reflection\Types\Context
@@ -44,45 +44,18 @@ class BaseDoc extends BaseObject
     public $tags = [];
     
     /**
-     * Returns the FQSEN normalized
-     * 
-     * Contrary to the usual standard we use a FQSEN with the leading backspace
-     * in the namespace removed
-     * 
-     * @param \phpDocumentor\Reflection\Fqsen|string $name
+     * @inheritDoc
      */
-    public static function normalizeFQSEN($name)
+    public static function normalizeKey($name)
     {
         return ltrim(($name instanceof \phpDocumentor\Reflection\Fqsen) ? (string)$name : $name, '\\');        
     }
-    
     /**
-     * Returns the name part in normalized way
-     * Additional characters like trailing () or leading $ are removed
-     * @param \phpDocumentor\Reflection\Fqsen $name
-     * @return type
-     */
-    public static function normalizeNamePart($name)
-    {
-        $e = explode('\\', (($name instanceof \phpDocumentor\Reflection\Fqsen) ? $name->getName() : $name));
-        $result = $e[count($e)-1];
-        $e = explode(':', $result);
-        $result = $e[count($e)-1];        
-        $result = rtrim($result, '() ');
-        $result = ltrim($result, '$ ');
-        return $result;
-    }
-    
-    /**
-     * Normalizes the name in the context of the Doc
-     * By default this method returns the normalized FQSEN.
-     * Doc-Elements in a local scope should override this method 
-     * returning the name part only by calling [[static::normalizeNamePart()]]
-     * @param \phpDocumentor\Reflection\Fqsen|string $name
+     * @inheritDoc
      */
     public static function normalizeName($name)
     {
-        return static::normalizeFQSEN($name);
+        return static::normalizeKey($name);
     }
     
     /**
@@ -104,32 +77,20 @@ class BaseDoc extends BaseObject
     }
     
     /**
-     * Returns the normalized name of the element
-     * NOTE: You SHOULD NOT override this method to change the way the name
-     * of this element is normalized. Override [[static::normalizeName()]] instead.
-     * @return string Name of Element
+     * @inheritDoc
      */
     public function getName() {
         return static::normalizeName($this->_fqsen);
     }
     
     /**
-     * Returns the normalized name part by calling [[static::normalizeNamePart()]]
-     * @return string
+     * @inheritDoc
      */
-    public function getNamePart()
+    public function getKey(): string
     {
-        return static::normalizeNamePart($this->_fqsen->getName());
+        return static::normalizeKey($this->_fqsen);
     }
     
-    /**
-     * Returns the FQSEN string by calling [[static::normalizeFQSEN()]]
-     * @return string
-     */
-    public function getNormalizedFQSEN()
-    {
-        return static::normalizeFQSEN($this->fqsen);
-    }
 
     /**
      * Checks if doc has tag of a given name
@@ -289,4 +250,6 @@ class BaseDoc extends BaseObject
         $firstChar = mb_strtoupper(mb_substr($string, 0, 1, 'utf-8'), 'utf-8');
         return $firstChar . mb_substr($string, 1, mb_strlen($string, 'utf-8'), 'utf-8');
     }
+
+
 }

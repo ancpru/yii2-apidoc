@@ -18,14 +18,24 @@ use PhpParser\Node\Expr;
 class PrettyPrinter extends \phpDocumentor\Reflection\PrettyPrinter
 {
     /**
+     * Constructor
+     * @param type $options
+     */
+    public function __construct(array $options = array())
+    {
+        $options = array_merge(['shortArraySyntax' => true], $options);
+        parent::__construct($options);
+    }
+    
+    /**
      * @param Expr\Array_ $node
      * @return string
      */
-    public function pExpr_Array(Expr\Array_ $node)
+    public function __pExpr_Array(Expr\Array_ $node)
     {
         return '[' . $this->pCommaSeparated($node->items) . ']';
     }
-
+    
     /**
      * Returns a simple human readable output for a value.
      *

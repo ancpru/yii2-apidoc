@@ -15,18 +15,10 @@ namespace yii\apidoc\models;
  */
 class ConstDoc extends BaseDoc
 {
+    use LocalDocElementTrait; 
+    
     public $definedBy;
     public $value;
-
-    /**
-     * Returns the normalized name of a const
-     * The name of a const is normalized to name only
-     * @param string|\phpDocumentor\Reflection\Fqsen $name
-     */
-    public static function normalizeName($name)
-    {
-        return parent::normalizeNamePart($name);
-    }
 
     /**
      * @param \phpDocumentor\Reflection\ClassReflector\ConstantReflector $reflector

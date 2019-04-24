@@ -91,7 +91,12 @@ abstract class BaseRenderer extends Component
             }
             // Process type 
             $postfix = '';
+            $prefix = '';
             if (is_string($type)) {
+                if ($type[0] === '?') {
+                    $prefix = '?';
+                    $type = substr($type, 1);
+                }
                 if (!empty($type) && substr_compare($type, '[]', -2, 2) === 0) {
                     $postfix = '[]';
                     $type = substr($type, 0, -2);
@@ -150,9 +155,9 @@ abstract class BaseRenderer extends Component
                     if (isset($phpTypeAliases[$type])) {
                         $type = $phpTypeAliases[$type];
                     }
-                    $links[] = $this->generateLink($linkText, 'http://www.php.net/language.types.' . strtolower(ltrim($type, '\\')), $options) . $postfix;
+                    $links[] = $prefix . $this->generateLink($linkText, 'http://www.php.net/language.types.' . strtolower(ltrim($type, '\\')), $options) . $postfix;
                 } else {
-                    $links[] = $type . $postfix;
+                    $links[] = $prefix . $type . $postfix;
                 }
             } elseif ($type instanceof BaseDoc) {
                 $linkText = $type->name;
@@ -160,7 +165,7 @@ abstract class BaseRenderer extends Component
                     $linkText = $title;
                     $title = null;
                 }
-                $links[] = $this->generateLink($linkText, $this->generateApiUrl($type->name), $options) . $postfix;
+                $links[] = $prefix . $this->generateLink($linkText, $this->generateApiUrl($type->name), $options) . $postfix;
             }
         }
 
