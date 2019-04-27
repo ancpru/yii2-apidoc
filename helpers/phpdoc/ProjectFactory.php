@@ -53,7 +53,7 @@ class ProjectFactory implements ProjectFactoryInterface
             new Factory\File(NodesFactory::createInstance()),
             new Factory\Function_(),
             new Factory\Interface_(),
-            new Factory\Method(),
+            new MethodFactory(),
             new Factory\Property(new PrettyPrinter()),
             new Factory\Trait_(),
                 ]
